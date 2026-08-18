@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>360Learning — Skills Ontology Setup</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --border:#2a2f3a;
+    --text:#e8eaed; --muted:#9aa4b2; --accent:#4ac994; --accent-dark:#379a72;
+    --danger:#e5484d; --warn:#e8b339; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+  }
+  header{
+    padding:28px 24px 18px; border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#141824,#0f1115);
+  }
+  header h1{margin:0 0 6px; font-size:22px;}
+  header p{margin:0; color:var(--muted); font-size:14px;}
+  .wrap{max-width:960px; margin:0 auto; padding:0 24px;}
+  .steps{display:flex; gap:8px; margin:18px auto 0; max-width:960px; padding:0 24px; flex-wrap:wrap;}
+  .step-pill{
+    font-size:12px; padding:6px 12px; border-radius:999px; border:1px solid var(--border);
+    color:var(--muted); background:var(--panel);
+  }
+  .step-pill.active{border-color:var(--accent); color:var(--accent); background:#12241d;}
+  .step-pill.done{border-color:var(--accent-dark); color:var(--accent);}
+  main{max-width:960px; margin:0 auto; padding:24px;}
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:12px;
+    padding:22px; margin-bottom:20px;
+  }
+  .card h2{margin-top:0; font-size:17px; display:flex; align-items:center; gap:8px;}
+  .card h2 .badge{
+    font-size:11px; background:var(--panel2); color:var(--muted); padding:2px 8px; border-radius:6px; border:1px solid var(--border);
+  }
+  label{display:block; font-size:13px; color:var(--muted); margin:14px 0 6px;}
+  input[type=text], input[type=password], select, textarea{
+    width:100%; padding:10px 12px; background:var(--panel2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; font-size:14px; font-family:inherit;
+  }
+  textarea{font-family:var(--mono); font-size:12.5px; min-height:140px; resize:vertical;}
+  .row{display:flex; gap:14px; flex-wrap:wrap;}
+  .row > div{flex:1; min-width:200px;}
+  .hint{font-size:12px; color:var(--muted); margin-top:5px;}
+  .btn{
+    appearance:none; border:none; cursor:pointer; padding:11px 18px; border-radius:8px;
+    font-size:14px; font-weight:600; margin-top:16px; margin-right:8px; transition:transform .05s ease;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--accent); color:#08130f;}
+  .btn-primary:hover{background:#5ad9a4;}
+  .btn-secondary{background:var(--panel2); color:var(--text); border:1px solid var(--border);}
+  .btn-secondary:hover{border-color:#3d4453;}
+  .btn-danger{background:transparent; color:var(--danger); border:1px solid #4a2325;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .status-line{font-size:13px; margin-top:12px; padding:10px 12px; border-radius:8px; display:none;}
+  .status-line.show{display:block;}
+  .status-ok{background:#0f2419; color:var(--accent); border:1px solid #1e4433;}
+  .status-err{background:#2a1416; color:#ff9797; border:1px solid #4a2325;}
+  .status-info{background:#131b2a; color:#8fb4ff; border:1px solid #223354;}
+  .status-warn{background:#2a2210; color:var(--warn); border:1px solid #4a3d1a;}
+  pre.log{
+    background:#0b0d12; border:1px solid var(--border); border-radius:8px; padding:12px;
+    font-family:var(--mono); font-size:12px; max-height:280px; overflow:auto; margin-top:12px;
+    white-space:pre-wrap; word-break:break-word;
+  }
+  table{width:100%; border-collapse:collapse; margin-top:12px; font-size:13px;}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--border);}
+  th{color:var(--muted); font-weight:600; font-size:12px;}
+  .tag{display:inline-block; font-size:11px; padding:2px 7px; border-radius:5px; background:var(--panel2); border:1px solid var(--border); color:var(--muted); margin-right:4px;}
+  .tag.ok{color:var(--accent); border-color:#1e4433;}
+  .tag.fail{color:#ff9797; border-color:#4a2325;}
+  .toolbar{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;}
+  .small{font-size:12px; color:var(--muted);}
+  a{color:#7fb8ff;}
+  .disclaimer{
+    background:#20140f; border:1px solid #4a2c1a; color:#ffcf9c; padding:12px 14px;
+    border-radius:10px; font-size:13px; margin-bottom:20px;
+  }
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:10px;}
+  @media (max-width:720px){.grid-3{grid-template-columns:1fr;}}
+  .kv{display:flex; justify-content:space-between; font-size:12.5px; padding:4px 0; border-bottom:1px dashed var(--border);}
+  .kv span:first-child{color:var(--muted);}
+  footer{text-align:center; color:var(--muted); font-size:12px; padding:30px 0 50px;}
+  .locked{opacity:.5; pointer-events:none;}
+  .collapsible summary{cursor:pointer; font-size:13px; color:var(--muted); margin-top:14px;}
+  .link-btn{background:none;border:none;color:#7fb8ff;cursor:pointer;font-size:12px;text-decoration:underline;padding:0;}
+  .upload-row{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 4px;
+    background:var(--panel2); border:1px dashed var(--border); border-radius:8px; padding:12px;
+  }
+  .upload-row input[type=file]{
+    flex:1; min-width:180px; font-size:12.5px; color:var(--muted);
+  }
+  .file-status{font-size:12px; margin-top:6px;}
+  .file-status.ok{color:var(--accent);}
+  .file-status.err{color:#ff9797;}
+  .col-hint{font-size:11.5px; color:var(--muted); margin-top:6px; font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>🎯 360Learning — Skills Ontology Setup</h1>
+    <p>Automate the creation of a full Skills ontology (Libraries → Skills → Jobs → Job‑Skills) on a demo account via the 360Learning API v2.</p>
+  </div>
+</header>
+
+<div class="steps">
+  <div class="step-pill active" id="pill-1">1 · Credentials</div>
+  <div class="step-pill" id="pill-2">2 · Environment</div>
+  <div class="step-pill" id="pill-3">3 · Ontology data</div>
+  <div class="step-pill" id="pill-4">4 · Run</div>
+  <div class="step-pill" id="pill-5">5 · Verify</div>
+</div>
+
+<main>
+
+  <div class="disclaimer">
+    ⚠️ <strong>This runs entirely in your browser</strong> — nothing is sent anywhere except directly to the 360Learning API domain you select. Your Client ID/Secret are never stored or transmitted elsewhere, but avoid using this on a shared computer.
+    If your company's 360Learning environment doesn't allow direct browser calls (CORS), see the note at the bottom of Step 4.
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="card" id="card-1">
+    <h2>1 · API Credentials <span class="badge">Step 1 &amp; 2 of the 360Learning guide</span></h2>
+    <p class="small">Get these from <strong>Settings → API v2 → + Add API Credentials</strong> in the demo account (platform admin/owner only). Required scopes: <code>skillsLibraries:bulk</code>, <code>skills:bulk</code>, <code>skillsJobs:bulk</code>, <code>skillsJobSkills:bulk</code>, <code>skills:read</code>, <code>bulkOperations:read</code>.</p>
+
+    <div class="row">
+      <div>
+        <label for="clientId">Client ID</label>
+        <input type="text" id="clientId" placeholder="e.g. 63f1a2b0c9e77a0012ab34cd" autocomplete="off">
+      </div>
+      <div>
+        <label for="clientSecret">Client Secret</label>
+        <input type="password" id="clientSecret" placeholder="•••••••••••••••••••••••••" autocomplete="off">
+      </div>
+    </div>
+
+    <label for="env">Environment</label>
+    <select id="env">
+      <option value="https://app.360learning.com">Production EU — app.360learning.com</option>
+      <option value="https://app.us.360learning.com">Production US — app.us.360learning.com</option>
+      <option value="custom">Custom (staging / sandbox URL)…</option>
+    </select>
+    <div id="customUrlWrap" style="display:none;">
+      <label for="customUrl">Custom base URL</label>
+      <input type="text" id="customUrl" placeholder="https://your-demo.360learning-dev.com">
+    </div>
+
+    <button class="btn btn-primary" id="btnAuth">Get access token</button>
+    <button class="btn btn-secondary" id="btnClear">Clear credentials</button>
+    <div class="status-line" id="authStatus"></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card locked" id="card-2">
+    <h2>2 · Build the Skills Ontology data <span class="badge">Library → Skill → Job → Job‑Skill</span></h2>
+    <p class="small">Fill in the ontology below, or load the ready-made demo dataset. Every object uses an <code>externalId</code> you choose — re-running with the same IDs safely <strong>upserts</strong> (creates or replaces) rather than duplicating.</p>
+
+    <button class="btn btn-secondary" id="btnLoadSample">Load sample demo ontology</button>
+    <button class="btn btn-secondary" id="btnClearData">Clear</button>
+
+    <details class="collapsible" open>
+      <summary>📚 Libraries — upload CSV/XLSX</summary>
+      <div class="upload-row">
+        <input type="file" id="fileLibraries" accept=".csv,.xlsx,.xls">
+        <button class="btn btn-secondary" style="margin:0;" id="tplLibraries" type="button">⬇ Download CSV template</button>
+      </div>
+      <div class="col-hint">Columns: <b>externalId*</b>, <b>name*</b>, description, status (draft|published)</div>
+      <div class="file-status" id="fileLibrariesStatus"></div>
+      <label style="margin-top:14px;">Parsed data (auto-filled from your file — you can still edit it here)</label>
+      <textarea id="librariesJson" placeholder='[
+  {"externalId": "lib-dev", "name": "Development", "description": "Software engineering skills", "status": "published"}
+]'></textarea>
+    </details>
+
+    <details class="collapsible">
+      <summary>🧩 Skills — upload CSV/XLSX</summary>
+      <div class="upload-row">
+        <input type="file" id="fileSkills" accept=".csv,.xlsx,.xls">
+        <button class="btn btn-secondary" style="margin:0;" id="tplSkills" type="button">⬇ Download CSV template</button>
+      </div>
+      <div class="col-hint">Columns: <b>externalId*</b>, <b>name*</b>, description, <b>parentExternalIds*</b> (one or more library/skill externalIds separated by <code>;</code>)</div>
+      <div class="file-status" id="fileSkillsStatus"></div>
+      <label style="margin-top:14px;">Parsed data (auto-filled from your file — you can still edit it here)</label>
+      <textarea id="skillsJson" placeholder='[
+  {"externalId": "skill-js", "name": "JavaScript", "description": "Writing JS apps", "parentExternalIds": ["lib-dev"]}
+]'></textarea>
+    </details>
+
+    <details class="collapsible">
+      <summary>💼 Jobs — upload CSV/XLSX</summary>
+      <div class="upload-row">
+        <input type="file" id="fileJobs" accept=".csv,.xlsx,.xls">
+        <button class="btn btn-secondary" style="margin:0;" id="tplJobs" type="button">⬇ Download CSV template</button>
+      </div>
+      <div class="col-hint">Columns: <b>externalId*</b>, <b>name*</b>, description, parentExternalId (for job hierarchy, optional)</div>
+      <div class="file-status" id="fileJobsStatus"></div>
+      <label style="margin-top:14px;">Parsed data (auto-filled from your file — you can still edit it here)</label>
+      <textarea id="jobsJson" placeholder='[
+  {"externalId": "job-fe-dev", "name": "Frontend Developer", "description": "Builds UI", "parentExternalId": null}
+]'></textarea>
+    </details>
+
+    <details class="collapsible">
+      <summary>🔗 Job ↔ Skill mapping — upload CSV/XLSX (optional, needs internal IDs — see Step 4)</summary>
+      <p class="hint">This endpoint requires 360Learning's internal <code>jobId</code>/<code>skillId</code> (not your externalIds). Create Libraries/Skills/Jobs first (Step 3), use Step 4 to fetch the resulting internal IDs, put them in your file, then upload here and re-run just this step.</p>
+      <div class="upload-row">
+        <input type="file" id="fileJobSkills" accept=".csv,.xlsx,.xls">
+        <button class="btn btn-secondary" style="margin:0;" id="tplJobSkills" type="button">⬇ Download CSV template</button>
+      </div>
+      <div class="col-hint">Columns: <b>jobId*</b> (internal), <b>skillId*</b> (internal)</div>
+      <div class="file-status" id="fileJobSkillsStatus"></div>
+      <label style="margin-top:14px;">Parsed data (auto-filled from your file — you can still edit it here)</label>
+      <textarea id="jobSkillsJson" placeholder='[
+  {"jobId": "<internal job id from step 4>", "skillId": "<internal skill id from step 4>"}
+]'></textarea>
+    </details>
+
+    <div class="status-line" id="dataStatus"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card locked" id="card-3">
+    <h2>3 · Run the setup</h2>
+    <p class="small">Runs in order: Libraries → Skills → Jobs → (optional) Job‑Skills. Each call is a bulk upsert and returns an async operation that this tool polls until it finishes.</p>
+    <div class="grid-3">
+      <label style="display:flex; align-items:center; gap:8px; margin:0;"><input type="checkbox" id="chkLibraries" checked> Upsert Libraries</label>
+      <label style="display:flex; align-items:center; gap:8px; margin:0;"><input type="checkbox" id="chkSkills" checked> Upsert Skills</label>
+      <label style="display:flex; align-items:center; gap:8px; margin:0;"><input type="checkbox" id="chkJobs" checked> Upsert Jobs</label>
+    </div>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:10px;"><input type="checkbox" id="chkJobSkills"> Replace Job‑Skills (only if internal IDs filled in above)</label>
+
+    <button class="btn btn-primary" id="btnRun">▶ Run setup</button>
+    <div class="status-line" id="runStatus"></div>
+    <pre class="log" id="runLog" style="display:none;"></pre>
+
+    <div class="hint" style="margin-top:14px;">
+      <strong>CORS note:</strong> the 360Learning API is meant to be called server-to-server. If your browser blocks requests with a CORS error, this static page can't get around that on its own — you'll need to either (a) ask 360Learning support/CSP to allow your origin, or (b) run this same logic from a small server-side script (Node/Python) instead of the browser. The request bodies logged below can be copy-pasted into curl/Postman as a fallback.
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="card locked" id="card-4">
+    <h2>4 · Verify &amp; fetch internal IDs</h2>
+    <p class="small">Use this to confirm what's live, and to get the internal <code>_id</code> values needed for the Job‑Skills mapping step.</p>
+    <button class="btn btn-secondary" id="btnListSkills">List all skills</button>
+    <button class="btn btn-secondary" id="btnListJobs">List all bulk operations</button>
+    <div id="verifyResults"></div>
+  </div>
+
+  <footer>
+    Built against the <a href="https://360learning.readme.io/docs/introduction" target="_blank" rel="noopener">360Learning API v2 documentation</a> ·
+    See also <a href="https://support.360learning.com/hc/en-us/search?utf8=%E2%9C%93&query=skills+api" target="_blank" rel="noopener">Support Center: Skills API</a> ·
+    Not an official 360Learning product.
+  </footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  const state = {
+    baseUrl: null,
+    token: null,
+    tokenExpiresAt: 0,
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function setStatus(el, type, msg){
+    el.className = "status-line show status-" + type;
+    el.textContent = msg;
+  }
+
+  function unlock(cardId){
+    $(cardId).classList.remove("locked");
+  }
+  function markPillDone(id){ $(id).classList.remove("active"); $(id).classList.add("done"); }
+  function markPillActive(id){ $(id).classList.add("active"); }
+
+  // ---------- Step 1: environment + auth ----------
+  $("env").addEventListener("change", () => {
+    $("customUrlWrap").style.display = $("env").value === "custom" ? "block" : "none";
+  });
+
+  function getBaseUrl(){
+    const v = $("env").value;
+    if (v === "custom") return $("customUrl").value.trim().replace(/\/$/, "");
+    return v;
+  }
+
+  async function getAccessToken(){
+    const clientId = $("clientId").value.trim();
+    const clientSecret = $("clientSecret").value.trim();
+    const baseUrl = getBaseUrl();
+    const authStatus = $("authStatus");
+
+    if(!clientId || !clientSecret){
+      setStatus(authStatus, "err", "Please enter both the Client ID and Client Secret.");
+      return;
+    }
+    if(!baseUrl){
+      setStatus(authStatus, "err", "Please choose or enter a valid environment URL.");
+      return;
+    }
+
+    setStatus(authStatus, "info", "Requesting access token…");
+    $("btnAuth").disabled = true;
+
+    try{
+      const res = await fetch(baseUrl + "/api/v2/oauth2/token", {
+        method: "POST",
+        headers: { "accept":"application/json", "content-type":"application/json" },
+        body: JSON.stringify({ grant_type:"client_credentials", client_id: clientId, client_secret: clientSecret })
+      });
+
+      if(!res.ok){
+        const text = await res.text().catch(()=> "");
+        throw new Error("HTTP " + res.status + " — " + text);
+      }
+      const data = await res.json();
+      state.token = data.access_token;
+      state.baseUrl = baseUrl;
+      state.tokenExpiresAt = Date.now() + (parseInt(data.expires_in || "3600", 10) * 1000) - 15000;
+
+      setStatus(authStatus, "ok", "✅ Access token acquired (valid ~1 hour). You can proceed to Step 2.");
+      markPillDone("pill-1");
+      markPillActive("pill-2");
+      unlock("card-2");
+      unlock("card-3");
+      unlock("card-4");
+    }catch(err){
+      let msg = "Failed to get token: " + err.message;
+      if (err.message.includes("Failed to fetch")){
+        msg += "\n\nThis is very likely a CORS restriction from the browser calling 360Learning's API directly, or a network/DNS issue. See the CORS note in Step 3.";
+      }
+      setStatus(authStatus, "err", msg);
+    }finally{
+      $("btnAuth").disabled = false;
+    }
+  }
+
+  $("btnAuth").addEventListener("click", getAccessToken);
+
+  $("btnClear").addEventListener("click", () => {
+    $("clientId").value = "";
+    $("clientSecret").value = "";
+    state.token = null;
+    setStatus($("authStatus"), "warn", "Credentials cleared from the form.");
+  });
+
+  async function ensureToken(){
+    if(!state.token || Date.now() > state.tokenExpiresAt){
+      await getAccessToken();
+    }
+    if(!state.token) throw new Error("No valid access token. Complete Step 1 first.");
+    return state.token;
+  }
+
+  // ---------- Step 2: sample data ----------
+  const sample = {
+    libraries: [
+      { externalId: "lib-dev", name: "Development", description: "Software engineering & delivery skills", status: "published" },
+      { externalId: "lib-product", name: "Product & Design", description: "Product management and UX/UI skills", status: "published" },
+      { externalId: "lib-soft", name: "Soft Skills", description: "Communication, leadership and collaboration", status: "published" }
+    ],
+    skills: [
+      { externalId: "skill-js", name: "JavaScript", description: "Building applications with JavaScript", parentExternalIds: ["lib-dev"] },
+      { externalId: "skill-frontend", name: "Frontend Development", description: "HTML/CSS/JS UI development", parentExternalIds: ["lib-dev"] },
+      { externalId: "skill-react", name: "React", description: "Building UIs with React", parentExternalIds: ["skill-frontend"] },
+      { externalId: "skill-backend", name: "Backend Development", description: "APIs, databases, services", parentExternalIds: ["lib-dev"] },
+      { externalId: "skill-ux", name: "UX Research", description: "User research and testing", parentExternalIds: ["lib-product"] },
+      { externalId: "skill-ui", name: "UI Design", description: "Visual and interaction design", parentExternalIds: ["lib-product"] },
+      { externalId: "skill-communication", name: "Communication", description: "Written & verbal communication", parentExternalIds: ["lib-soft"] },
+      { externalId: "skill-leadership", name: "Leadership", description: "Leading teams and initiatives", parentExternalIds: ["lib-soft"] }
+    ],
+    jobs: [
+      { externalId: "job-fe-dev", name: "Frontend Developer", description: "Builds user-facing applications" },
+      { externalId: "job-be-dev", name: "Backend Developer", description: "Builds APIs and services" },
+      { externalId: "job-pm", name: "Product Manager", description: "Owns product strategy and roadmap" },
+      { externalId: "job-designer", name: "Product Designer", description: "Owns UX and UI design" }
+    ],
+    jobSkills: []
+  };
+
+  $("btnLoadSample").addEventListener("click", () => {
+    $("librariesJson").value = JSON.stringify(sample.libraries, null, 2);
+    $("skillsJson").value = JSON.stringify(sample.skills, null, 2);
+    $("jobsJson").value = JSON.stringify(sample.jobs, null, 2);
+    setStatus($("dataStatus"), "ok", "Sample ontology loaded. Review or edit it, then go to Step 3.");
+  });
+
+  $("btnClearData").addEventListener("click", () => {
+    $("librariesJson").value = "";
+    $("skillsJson").value = "";
+    $("jobsJson").value = "";
+    $("jobSkillsJson").value = "";
+    setStatus($("dataStatus"), "warn", "Ontology data cleared.");
+  });
+
+  // ---------- CSV/XLSX upload handling ----------
+
+  function downloadCsv(filename, rows){
+    const csv = rows.map(r => r.map(cell => {
+      const s = String(cell ?? "");
+      return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  $("tplLibraries").addEventListener("click", () => downloadCsv("libraries_template.csv", [
+    ["externalId","name","description","status"],
+    ["lib-dev","Development","Software engineering & delivery skills","published"],
+    ["lib-product","Product & Design","Product management and UX/UI skills","published"]
+  ]));
+  $("tplSkills").addEventListener("click", () => downloadCsv("skills_template.csv", [
+    ["externalId","name","description","parentExternalIds"],
+    ["skill-js","JavaScript","Building applications with JavaScript","lib-dev"],
+    ["skill-react","React","Building UIs with React","skill-js;lib-dev"]
+  ]));
+  $("tplJobs").addEventListener("click", () => downloadCsv("jobs_template.csv", [
+    ["externalId","name","description","parentExternalId"],
+    ["job-fe-dev","Frontend Developer","Builds user-facing applications",""],
+    ["job-senior-fe-dev","Senior Frontend Developer","Senior version of the role","job-fe-dev"]
+  ]));
+  $("tplJobSkills").addEventListener("click", () => downloadCsv("job_skills_template.csv", [
+    ["jobId","skillId"],
+    ["<internal-job-id-from-step-4>","<internal-skill-id-from-step-4>"]
+  ]));
+
+  // Reads a File (csv/xlsx/xls) and resolves to an array of row objects keyed by header row.
+  function readSpreadsheetFile(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Could not read the file."));
+      reader.onload = (e) => {
+        try{
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
+          resolve(rows);
+        }catch(err){ reject(err); }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function splitMulti(val){
+    if(val === undefined || val === null) return [];
+    const s = String(val).trim();
+    if(!s) return [];
+    return s.split(/[;,]/).map(x => x.trim()).filter(Boolean);
+  }
+  function cleanStr(val){
+    if(val === undefined || val === null) return undefined;
+    const s = String(val).trim();
+    return s === "" ? undefined : s;
+  }
+  function pruneUndefined(obj){
+    const out = {};
+    Object.keys(obj).forEach(k => { if(obj[k] !== undefined) out[k] = obj[k]; });
+    return out;
+  }
+
+  function rowsToLibraries(rows){
+    return rows.map(r => pruneUndefined({
+      externalId: cleanStr(r.externalId ?? r.ExternalId ?? r.external_id),
+      name: cleanStr(r.name ?? r.Name),
+      description: cleanStr(r.description ?? r.Description),
+      status: cleanStr(r.status ?? r.Status)
+    })).filter(x => x.externalId && x.name);
+  }
+  function rowsToSkills(rows){
+    return rows.map(r => pruneUndefined({
+      externalId: cleanStr(r.externalId ?? r.ExternalId ?? r.external_id),
+      name: cleanStr(r.name ?? r.Name),
+      description: cleanStr(r.description ?? r.Description),
+      parentExternalIds: splitMulti(r.parentExternalIds ?? r.ParentExternalIds ?? r.parent_external_ids)
+    })).filter(x => x.externalId && x.name && x.parentExternalIds && x.parentExternalIds.length);
+  }
+  function rowsToJobs(rows){
+    return rows.map(r => pruneUndefined({
+      externalId: cleanStr(r.externalId ?? r.ExternalId ?? r.external_id),
+      name: cleanStr(r.name ?? r.Name),
+      description: cleanStr(r.description ?? r.Description),
+      parentExternalId: cleanStr(r.parentExternalId ?? r.ParentExternalId ?? r.parent_external_id)
+    })).filter(x => x.externalId && x.name);
+  }
+  function rowsToJobSkills(rows){
+    return rows.map(r => pruneUndefined({
+      jobId: cleanStr(r.jobId ?? r.JobId ?? r.job_id),
+      skillId: cleanStr(r.skillId ?? r.SkillId ?? r.skill_id)
+    })).filter(x => x.jobId && x.skillId);
+  }
+
+  function wireFileInput(inputId, statusId, textareaId, mapFn, label){
+    $(inputId).addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      const statusEl = $(statusId);
+      if(!file) return;
+      statusEl.className = "file-status";
+      statusEl.textContent = "Parsing " + file.name + "…";
+      try{
+        const rows = await readSpreadsheetFile(file);
+        const mapped = mapFn(rows);
+        if(!mapped.length){
+          throw new Error("No valid rows found — check that required columns are present and filled in.");
+        }
+        $(textareaId).value = JSON.stringify(mapped, null, 2);
+        statusEl.className = "file-status ok";
+        statusEl.textContent = `✅ Parsed ${mapped.length} of ${rows.length} row(s) from ${file.name}. Review the JSON below, then continue.`;
+      }catch(err){
+        statusEl.className = "file-status err";
+        statusEl.textContent = "❌ " + err.message;
+      }
+    });
+  }
+
+  wireFileInput("fileLibraries", "fileLibrariesStatus", "librariesJson", rowsToLibraries, "Libraries");
+  wireFileInput("fileSkills", "fileSkillsStatus", "skillsJson", rowsToSkills, "Skills");
+  wireFileInput("fileJobs", "fileJobsStatus", "jobsJson", rowsToJobs, "Jobs");
+  wireFileInput("fileJobSkills", "fileJobSkillsStatus", "jobSkillsJson", rowsToJobSkills, "Job-Skills");
+
+  function parseJsonArray(str, label){
+    if(!str || !str.trim()) return [];
+    let parsed;
+    try{ parsed = JSON.parse(str); }
+    catch(e){ throw new Error(label + " is not valid JSON: " + e.message); }
+    if(!Array.isArray(parsed)) throw new Error(label + " must be a JSON array.");
+    return parsed;
+  }
+
+  // ---------- Step 3: run ----------
+  const log = $("runLog");
+  function appendLog(line){
+    log.style.display = "block";
+    log.textContent += line + "\n";
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function apiCall(path, method, body){
+    const token = await ensureToken();
+    const res = await fetch(state.baseUrl + path, {
+      method,
+      headers: {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "360-api-version": "v2.0",
+        "Authorization": "Bearer " + token
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+    return res;
+  }
+
+  async function pollBulkOperation(locationUrl, label){
+    // locationUrl is an absolute URL returned in the Location header
+    let path = locationUrl.replace(state.baseUrl, "");
+    appendLog(`⏳ Polling ${label} bulk operation…`);
+    for(let i=0; i<40; i++){
+      await new Promise(r => setTimeout(r, 2000));
+      const res = await apiCall(path, "GET");
+      if(!res.ok){
+        appendLog(`  ⚠️ Poll HTTP ${res.status} while checking ${label}. Retrying…`);
+        continue;
+      }
+      const data = await res.json();
+      const status = data.status || data.state || JSON.stringify(data);
+      appendLog(`  status: ${status}`);
+      if(["completed","done","finished","succeeded","success"].includes(String(status).toLowerCase())){
+        appendLog(`✅ ${label}: completed.`);
+        return data;
+      }
+      if(["failed","error","erroneous"].includes(String(status).toLowerCase())){
+        appendLog(`❌ ${label}: failed. ${JSON.stringify(data)}`);
+        return data;
+      }
+    }
+    appendLog(`⚠️ ${label}: timed out waiting for completion after ~80s. Check Step 4 → "List all bulk operations" manually.`);
+    return null;
+  }
+
+  async function upsertBulk(path, scopeLabel, items){
+    if(!items.length){
+      appendLog(`— Skipping ${scopeLabel} (no items).`);
+      return;
+    }
+    appendLog(`➡️ Sending ${items.length} ${scopeLabel} to ${path} …`);
+    const res = await apiCall(path, "PUT", { input: items });
+    if(res.status === 202){
+      const location = res.headers.get("Location") || res.headers.get("location");
+      appendLog(`   Accepted (202). Operation queued.`);
+      if(location){
+        await pollBulkOperation(location, scopeLabel);
+      }
+    } else {
+      const text = await res.text().catch(()=> "");
+      appendLog(`❌ ${scopeLabel} failed: HTTP ${res.status} — ${text}`);
+      throw new Error(`${scopeLabel} upsert failed with HTTP ${res.status}`);
+    }
+  }
+
+  async function runSetup(){
+    const runStatus = $("runStatus");
+    log.textContent = "";
+    log.style.display = "block";
+    $("btnRun").disabled = true;
+    setStatus(runStatus, "info", "Running…");
+
+    try{
+      await ensureToken();
+
+      const libraries = parseJsonArray($("librariesJson").value, "Libraries");
+      const skills = parseJsonArray($("skillsJson").value, "Skills");
+      const jobs = parseJsonArray($("jobsJson").value, "Jobs");
+      const jobSkills = parseJsonArray($("jobSkillsJson").value, "Job-Skills");
+
+      if($("chkLibraries").checked) await upsertBulk("/api/v2/bulk/skills/libraries", "Libraries", libraries);
+      if($("chkSkills").checked)    await upsertBulk("/api/v2/bulk/skills", "Skills", skills);
+      if($("chkJobs").checked)      await upsertBulk("/api/v2/bulk/skills/jobs", "Jobs", jobs);
+      if($("chkJobSkills").checked) await upsertBulk("/api/v2/bulk/skills/jobs-skills", "Job-Skills", jobSkills);
+
+      setStatus(runStatus, "ok", "✅ Setup run finished. Check the log below, then verify in Step 4.");
+      markPillDone("pill-2"); markPillDone("pill-3");
+      markPillActive("pill-4");
+    }catch(err){
+      setStatus(runStatus, "err", "Run stopped: " + err.message);
+    }finally{
+      $("btnRun").disabled = false;
+    }
+  }
+
+  $("btnRun").addEventListener("click", runSetup);
+
+  // ---------- Step 4: verify ----------
+  $("btnListSkills").addEventListener("click", async () => {
+    const box = $("verifyResults");
+    box.innerHTML = "<p class='small'>Loading skills…</p>";
+    try{
+      await ensureToken();
+      const res = await apiCall("/api/v2/skills?limit=500", "GET");
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const items = data.items || data.data || data;
+      let rows = (Array.isArray(items) ? items : []).map(s =>
+        `<tr><td>${s.name||""}</td><td>${s._id||s.id||""}</td><td>${s.externalId||""}</td></tr>`
+      ).join("");
+      box.innerHTML = `<table><thead><tr><th>Name</th><th>Internal ID</th><th>External ID</th></tr></thead><tbody>${rows || "<tr><td colspan=3>No skills found.</td></tr>"}</tbody></table>`;
+    }catch(err){
+      box.innerHTML = `<div class="status-line show status-err">${err.message}</div>`;
+    }
+  });
+
+  $("btnListJobs").addEventListener("click", async () => {
+    const box = $("verifyResults");
+    box.innerHTML = "<p class='small'>Loading bulk operations…</p>";
+    try{
+      await ensureToken();
+      const res = await apiCall("/api/v2/bulk/operations?limit=20", "GET");
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const items = data.items || data.data || data;
+      let rows = (Array.isArray(items) ? items : []).map(o =>
+        `<tr><td>${o._id||o.id||""}</td><td>${o.type||""}</td><td>${o.status||""}</td><td>${o.createdAt||""}</td></tr>`
+      ).join("");
+      box.innerHTML = `<table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Created</th></tr></thead><tbody>${rows || "<tr><td colspan=4>No operations found.</td></tr>"}</tbody></table>`;
+    }catch(err){
+      box.innerHTML = `<div class="status-line show status-err">${err.message}</div>`;
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
